@@ -423,83 +423,231 @@ HAVING COUNT(*) >= 2;
 
 -- 1. 사원번호, 사원명, 부서번호, 부서명을 조회하시오.
 
+SELECT E.EMPLOYEE_ID        AS 사원번호,
+       E.FIRST_NAME         AS 성,
+       E.LAST_NAME          AS 이름,
+       D.DEPARTMENT_ID      AS 부서번호,
+       D.DEPARTMENT_NAME    AS 부서명
+  FROM EMPLOYEES E, DEPARTMENTS D
+ WHERE E.DEPARTMENT_ID = D.DEPARTMENT_ID;
+
+
 
 -- 2. 사원번호, 사원명, 직업, 연봉, 직업별 최대연봉, 직업별 최소연봉을 조회하시오.
+
+SELECT E.FIRST_NAME     AS 성,
+       E.LAST_NAME      AS 이름,
+       E.JOB_ID         AS 직업ID,
+       E.SALARY         AS 연봉,    
+       J.MAX_SALARY     AS 최대연봉,
+       J.MIN_SALARY     AS 최소연봉
+  FROM EMPLOYEES E, JOBS J
+ WHERE E.JOB_ID = J.JOB_ID;
 
 
 
 -- 3. 모든 사원들의(부서가 없는 사원도 포함) 사원번호, 사원명, 부서번호, 부서명을 조회하시오.
 
+SELECT E.EMPLOYEE_ID        AS 사원번호,
+       E.FIRST_NAME         AS 성,
+       E.LAST_NAME          AS 이름,
+       D.DEPARTMENT_ID      AS 부서번호,
+       D.DEPARTMENT_NAME    AS 부서이름
+  FROM EMPLOYEES E, DEPARTMENTS D
+ WHERE D.DEPARTMENT_ID(+) = E.DEPARTMENT_ID;
+
 
 -- 4. 사원번호, 사원명, 부서번호, 부서명을 조회하시오. 사원이 근무하지 않는 유령 부서도 조회하시오.
 
-
+SELECT E.EMPLOYEE_ID        AS 사원번호,
+       E.FIRST_NAME         AS 성,
+       E.LAST_NAME          AS 이름,
+       D.DEPARTMENT_ID      AS 부서번호,
+       D.DEPARTMENT_NAME    AS 부서명
+  FROM EMPLOYEES E, DEPARTMENTS D
+ WHERE D.DEPARTMENT_ID = E.DEPARTMENT_ID(+);
+ 
 -- 5. 사원번호, 사원명, 부서번호, 부서명, 근무지역을 조회하시오.
 
-
+SELECT E.EMPLOYEE_ID        AS 사원번호,
+       E.FIRST_NAME         AS 성,
+       E.LAST_NAME          AS 이름,
+       D.DEPARTMENT_ID      AS 부서번호,
+       D.DEPARTMENT_NAME    AS 부서이름,
+       L.CITY               AS 근무지역
+  FROM EMPLOYEES E, DEPARTMENTS D, LOCATIONS L
+ WHERE D.DEPARTMENT_ID = E.DEPARTMENT_ID
+   AND L.LOCATION_ID = D.LOCATION_ID;
+   
 -- 6. 부서번호, 부서명, 근무도시, 근무국가를 조회하시오.
 
+SELECT D.DEPARTMENT_ID      AS 부서번호,
+       D.DEPARTMENT_NAME    AS 부서이름,
+       L.CITY               AS 근무도시,
+       C.COUNTRY_NAME       AS 근무국가
+  FROM DEPARTMENTS D, LOCATIONS L, COUNTRIES C
+ WHERE D.LOCATION_ID = L.LOCATION_ID
+   AND L.COUNTRY_ID = C.COUNTRY_ID;
 
-
--- 1. 사원번호가 101인 사원의 직업과 동일한 직업을 가진 사원을 조회하기
 
 
             /* 서브쿼리 연습문제 */
 
+-- 1. 사원번호가 101인 사원의 직업과 동일한 직업을 가진 사원을 조회하기
+
+SELECT *
+  FROM EMPLOYEES
+ WHERE JOB_ID = (SELECT JOB_ID
+                   FROM EMPLOYEES
+                  WHERE EMPLOYEE_ID = 101);
+
 
 -- 2. 부서명이 'IT'인 부서에 근무하는 사원 조회하기
 
-
-
+SELECT *
+  FROM EMPLOYEES
+ WHERE DEPARTMENT_ID = (SELECT DEPARTMENT_ID
+                          FROM DEPARTMENTS
+                         WHERE DEPARTMENT_NAME = 'IT');
 
 -- 3. 'Seattle'에서 근무하는 사원 조회하기
 
-
+SELECT *
+  FROM EMPLOYEES
+ WHERE DEPARTMENT_ID IN (SELECT DEPARTMENT_ID
+                           FROM DEPARTMENTS
+                          WHERE LOCATION_ID = (SELECT LOCATION_ID
+                                                 FROM LOCATIONS
+                                                WHERE CITY = 'Seattle'));
 
 
 -- 4. 연봉 가장 높은 사원 조회하기
 
-
+SELECT *
+  FROM EMPLOYEES
+ WHERE SALARY = (SELECT MAX(SALARY)
+                   FROM EMPLOYEES);
 
 -- 5. 가장 먼저 입사한 사원 조회하기
 
-
+SELECT *
+  FROM EMPLOYEES
+ WHERE HIRE_DATE = (SELECT MIN(HIRE_DATE)
+                      FROM EMPLOYEES);
 
 -- 6. 평균 연봉 이상을 받는 사원 조회하기
+
+SELECT *
+  FROM EMPLOYEES
+ WHERE SALARY >= (SELECT AVG(SALARY)
+                    FROM EMPLOYEES);
 
 
 -- 7. 연봉이 3번째로 높은 사원 조회하기
 
+SELECT 행번호,
+       EMPLOYEE_ID
+  FROM (SELECT ROW_NUMBER() OVER(ORDER BY SALARY DESC) AS 행번호,
+               EMPLOYEE_ID
+          FROM EMPLOYEES)
+ WHERE 행번호 = 3;
+
 
 -- 8. 연봉 11 ~ 20번째 사원 조회하기
+
+SELECT 행번호,
+       EMPLOYEE_ID
+  FROM (SELECT RANK() OVER(ORDER BY SALARY DESC) AS 행번호,
+               EMPLOYEE_ID
+          FROM EMPLOYEES)
+ WHERE 행번호 BETWEEN 11 AND 20;
 
 
 -- 9. 21 ~ 30번째로 입사한 사원 조회하기
 
+SELECT 입사순,
+       EMPLOYEE_ID
+  FROM (SELECT RANK() OVER(ORDER BY HIRE_DATE DESC) AS 입사순,
+               EMPLOYEE_ID
+          FROM EMPLOYEES)
+ WHERE 입사순 BETWEEN 21 AND 30;
+
+
 
 -- 10.부서번호가 50인 부서에 근무하는 사원번호, 사원명, 부서명 조회하기 (비상관)
 
+SELECT EMPLOYEE_ID,
+       FIRST_NAME,
+       LAST_NAME,
+       (SELECT DEPARTMENT_NAME
+          FROM DEPARTMENTS
+         WHERE DEPARTMENT_ID = 50)
+  FROM EMPLOYEES
+ WHERE DEPARTMENT_ID = 50;
  
 -- 11. 부서번호가 50인 부서에 근무하는 사원번호, 사원명, 부서명 조회하기 (상관)
+
+SELECT EMPLOYEE_ID,
+       FIRST_NAME,
+       LAST_NAME,
+       (SELECT D.DEPARTMENT_NAME
+          FROM DEPARTMENTS D
+         WHERE D.DEPARTMENT_ID = E.DEPARTMENT_ID
+           AND D.DEPARTMENT_ID = 50)
+  FROM EMPLOYEES E;
+
+
 
             /* WITH 연습문제 */
             
 -- 1. 1 ~ 10번째로 고용된 사원 조회하기
 -- 1) 서브쿼리
 
+SELECT 고용순서,
+       EMPLOYEE_ID
+  FROM (SELECT RANK() OVER(ORDER BY HIRE_DATE ASC) AS 고용순서,
+               EMPLOYEE_ID
+          FROM EMPLOYEES)
+ WHERE 고용순서 BETWEEN 1 AND 10;
+
 
 -- 2) WITH
+WITH
+    MY_SUBQUERY AS (
+    SELECT RANK() OVER(ORDER BY HIRE_DATE ASC) AS 고용순서,
+           EMPLOYEE_ID
+      FROM EMPLOYEES
+    )
+SELECT *
+  FROM MY_SUBQUERY
+ WHERE 고용순서 BETWEEN 1 AND 10;
+
+
 
 
 -- 2. 부서별 부서번호, 부서명, 연봉총액을 조회하기
 -- 1) 조인
+SELECT E.DEPARTMENT_ID    AS 부서번호,
+       D.DEPARTMENT_NAME  AS 부서명,
+       E.연봉총액
+  FROM DEPARTMENTS D, (SELECT SUM(SALARY) AS 연봉총액,
+                              DEPARTMENT_ID
+                         FROM EMPLOYEES
+                        GROUP BY DEPARTMENT_ID) E
+ WHERE D.DEPARTMENT_ID = E.DEPARTMENT_ID;
 
 
 -- 2) WITH
-
-
-
-
+WITH
+    MY_SUBQUERY AS (SELECT SUM(SALARY) AS 연봉총액,
+                           DEPARTMENT_ID
+                      FROM EMPLOYEES
+                     GROUP BY DEPARTMENT_ID)
+SELECT D.DEPARTMENT_ID    AS 부서번호,
+       D.DEPARTMENT_NAME  AS 부서명,
+       MY.연봉총액
+  FROM DEPARTMENTS D, MY_SUBQUERY MY
+ WHERE D.DEPARTMENT_ID = MY.DEPARTMENT_ID;
 
 
 

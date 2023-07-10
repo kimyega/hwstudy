@@ -100,7 +100,7 @@ SELECT USER_NO,
        USER_MOBILE1,
        USER_MOBILE2
   FROM USER_T
- WHERE SUBSTR(USER_MOBILE2, 1, 1) = '5';
+ WHERE USER_MOBILE2 LIKE '5%';
 
 -- 3. 2010년 이후에 가입한 사용자의 사용자번호, 아이디, 가입일을 조회하시오.
 
@@ -157,18 +157,23 @@ HAVING USER_ADDR NOT IN('서울', '경기');
 -- 7     SDY
 -- 3     KKJ
 -- 9     LKK
-
 SELECT USER_NO AS 번호,
        USER_ID AS 아이디
- FROM USER_T;
-
-
+  FROM USER_T
+ WHERE USER_NO NOT IN (SELECT USER_NO
+                         FROM BUY_T);
 -- 8. 카테고리별 구매횟수를 조회하시오.
 -- 카테고리  구매횟수
 -- 전자      4
 -- 신발      2
 -- 잡화      2
 -- 의류      2
+
+SELECT P.PROD_CATEGORY  AS 카테고리,
+       COUNT(B.BUY_NO)  AS 구매횟수
+  FROM PRODUCT_T P, BUY_T B
+ WHERE P.PROD_CODE = B.PROD_CODE
+ GROUP BY P.PROD_CATEGORY;
 
 
 -- 9. 아이디별 구매횟수를 조회하시오.
@@ -178,6 +183,13 @@ SELECT USER_NO AS 번호,
 -- KYM     1
 -- KJD     1
 -- PSH     3
+
+SELECT U.USER_ID        AS 아이디,
+       COUNT(B.BUY_NO)  AS 구매횟수
+  FROM USER_T U, BUY_T B
+ WHERE U.USER_NO = B.USER_NO
+ GROUP BY U.USER_ID;
+
 
 
 -- 10. 아이디별 구매횟수를 조회하시오. 구매 이력이 없는 경우 구매횟수는 0으로 조회하고 아이디의 오름차순으로 조회하시오.
@@ -193,6 +205,16 @@ SELECT USER_NO AS 번호,
 -- SDY     신동엽  0
 -- YJS     유재석  0
 
+SELECT U.USER_ID                    AS 아이디,
+       U.USER_NAME                  AS 고객명,
+       NVL(COUNT(B.BUY_NO), 0)      AS 구매횟수
+  FROM USER_T U, BUY_T B
+ WHERE U.USER_NO = B.USER_NO(+)
+ GROUP BY U.USER_ID, U.USER_NAME, U.USER_NO
+ ORDER BY U.USER_ID;
+
+
+
 
 -- 11. 카테고리가 '전자'인 제품을 구매한 고객의 구매내역을 조회하시오.
 -- 고객명  제품명  구매액
@@ -200,6 +222,16 @@ SELECT USER_NO AS 번호,
 -- 김용만  모니터  200
 -- 박수홍  모니터  1000
 -- 박수홍  메모리  800
+
+SELECT U.USER_NAME                  AS 고객명,
+       P.PROD_NAME                  AS 제품명,
+       B.BUY_AMOUNT * P.PROD_PRICE  AS 구매액
+  FROM USER_T U, PRODUCT_T P, BUY_T B
+ WHERE U.USER_NO = B.USER_NO
+   AND B.PROD_CODE = P.PROD_CODE
+   AND P.PROD_CATEGORY = '전자';
+
+
 
 
 -- 12. 모든 제품의 제품명과 판매횟수를 조회하시오. 판매 이력이 없는 제품은 0으로 조회하시오.
@@ -209,8 +241,16 @@ SELECT USER_NO AS 번호,
 -- 청바지  2개
 -- 노트북  1개
 -- 모니터  2개
--- 책      1개
+-- 책      2개
 -- 벨트    0개
+
+SELECT P.PROD_NAME                  AS 제품명,
+       NVL(COUNT(B.BUY_NO), 0)      AS 판매횟수
+   FROM USER_T U, PRODUCT_T P, BUY_T B
+ WHERE U.USER_NO(+) = B.USER_NO
+   AND B.PROD_CODE(+) = P.PROD_CODE
+ GROUP BY P.PROD_NAME, P.PROD_CODE;
+
 
 
 -- 13. 제품을 구매한 이력이 있는 고객의 아이디, 고객명, 구매횟수, 총구매액을 조회하시오.
@@ -221,12 +261,27 @@ SELECT USER_NO AS 번호,
 -- LHJ     이휘재  2         80
 -- KHD     강호동  3         1210
 
+SELECT U.USER_ID                        AS 아이디,
+       U.USER_NAME                      AS 고객명,
+       COUNT(B.BUY_NO)                  AS 구매횟수,
+       SUM(B.BUY_AMOUNT * P.PROD_PRICE) AS 총구매액
+  FROM USER_T U, BUY_T B, PRODUCT_T P 
+ WHERE U.USER_NO = B.USER_NO
+   AND P.PROD_CODE = B.PROD_CODE
+ GROUP BY U.USER_ID, U.USER_NAME, U.USER_NO;
 
 -- 14. 구매횟수가 2회 이상인 고객명과 구매횟수를 조회하시오.
 -- 고객명  구매횟수
 -- 이휘재  2
 -- 박수홍  3
 -- 강호동  3
+
+SELECT U.USER_NAME                      AS 고객명,
+       COUNT(B.BUY_NO)                  AS 구매횟수
+  FROM USER_T U, BUY_T B
+ WHERE U.USER_NO = B.USER_NO
+ GROUP BY U.USER_NAME, U.USER_NO
+HAVING COUNT(B.BUY_NO) >= 2;
 
 
 -- 15. 어떤 고객이 어떤 제품을 구매했는지 조회하시오. 구매 이력이 없는 고객도 조회하고 아이디로 오름차순 정렬하시오.
@@ -247,26 +302,34 @@ SELECT USER_NO AS 번호,
 -- 신동엽   NULL
 -- 유재석   NULL
 
+SELECT U.USER_NAME AS 고객명,
+       P.PROD_NAME AS 구매제품
+  FROM USER_T U, BUY_T B, PRODUCT_T P
+ WHERE U.USER_NO = B.USER_NO(+)
+   AND P.PROD_CODE(+) = B.PROD_CODE
+ ORDER BY USER_ID;
+
+
 
 -- 16. 제품 테이블에서 제품명이 '책'인 제품의 카테고리를 '서적'으로 수정하시오.
 
 UPDATE PRODUCT_T
    SET PROD_NAME = '서적'
  WHERE PROD_CATEGORY = '책';
- 
+ COMMIT;
 -- 17. 연락처1이 '011'인 사용자의 연락처1을 모두 '010'으로 수정하시오.
 
 UPDATE USER_T
    SET USER_MOBILE1 = '010'
  WHERE USER_MOBILE1 = '011';
-
+COMMIT;
 
 -- 18. 구매번호가 가장 큰 구매내역을 삭제하시오.
 
 DELETE
   FROM BUY_T
  WHERE BUY_NO = MAX(BUY_NO);
-
+COMMIT;
 
 -- 19. 제품코드가 1인 제품을 삭제하시오. 삭제 이후 제품번호가 1인 제품의 구매내역이 어떻게 변하는지 조회하시오.
 
@@ -277,7 +340,7 @@ DELETE
 SELECT *
   FROM BUY_T
  WHERE BUY_NO = 1;
-
+COMMIT;
 -- 20. 사용자번호가 5인 사용자를 삭제하시오. 사용자번호가 5인 사용자의 구매 내역을 먼저 삭제한 뒤 진행하시오.
 
 DELETE
@@ -288,5 +351,5 @@ DELETE
 DELETE
   FROM USER_T
  WHERE USER_NO = 5;
-
+COMMIT;
 
